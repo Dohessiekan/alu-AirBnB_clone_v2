@@ -1,41 +1,36 @@
 #!/usr/bin/python3
 """
-script that distributes an archive to my web servers,
-using the function (do_deploy:)
+Fabric script method:
+    do_deploy: deploys archive to webservers
+Usage:
+    fab -f 2-do_deploy_web_static.py
+    do_deploy:archive_path=versions/web_static_202310130226.tgz
+    -i my_ssh_private_key -u ubuntu
 """
-import os
-from fabric.api import put, run, env
+from fabric.api import env, put, run
+import os.path
 env.hosts = ['54.90.69.113', '54.163.61.72']
 
 
 def do_deploy(archive_path):
     """
-    Distribution to my servers
+    Deploy archive to web server
     """
-    if archive_path is None or not os.path.exists(archive_path):
+    if os.path.isfile(archive_path) is False:
         return False
     try:
-        file = archive_path.split("/")[-1]
-        file_name = file.split(".")[0]
-        path = "/data/web_static/releases/"
-        # upload the archive to the /tmp/ directory of the web server
+        filename = archive_path.split("/")[-1]
+        no_ext = filename.split(".")[0]
+        path_no_ext = "/data/web_static/releases/{}/".format(no_ext)
+        symlink = "/data/web_static/current"
         put(archive_path, "/tmp/")
-        # create a folder with the same name as the archive
-        # without the extension
-        run("mkdir -p {}{}/".format(path, file_name))
-        # uncompress the archive to the folder
-        run("tar -xzf /tmp/{} -C {}{}/".format(
-            file, path, file_name))
-        # delete the archive from the web server
-        run("rm /tmp/{}".format(file))
-        run("mv {0}{1}/web_static/* {0}{1}/".format(path, file_name))
-        # delete the symbolic link /data/web_static/current from the web server
-        run("rm -rf {}{}/web_static".format(path, file_name))
-        run("rm -rf /data/web_static/current")
-        # create new symbolic link /data/web_static/current on web server
-        # linked to the new version of your code
-        run("ln -s {}{}/ /data/web_static/current".
-            format(path, file_name))
+        run("mkdir -p {}".format(path_no_ext))
+        run("tar -xzf /tmp/{} -C {}".format(filename, path_no_ext))
+        run("rm /tmp/{}".format(filename))
+        run("mv {}web_static/* {}".format(path_no_ext, path_no_ext))
+        run("rm -rf {}web_static".format(path_no_ext))
+        run("rm -rf {}".format(symlink))
+        run("ln -s {} {}".format(path_no_ext, symlink))
         return True
-    except BaseException:
+    except:
         return False
