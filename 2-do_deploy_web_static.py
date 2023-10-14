@@ -1,39 +1,41 @@
 #!/usr/bin/python3
-"""Fabric script that distributes an archive to your web servers"""
-from fabric.api import env, put, run
-from os.path import exists
-
-env.hosts = ["54.163.61.72", "54.90.69.113"]
-env.user = "ubuntu"
-env.key = "~/.ssh/id_rsa"
+"""
+script that distributes an archive to my web servers,
+using the function (do_deploy:)
+"""
+import os
+from fabric.api import put, run, env
+env.hosts = ['54.90.69.113', '54.163.61.72']
 
 
 def do_deploy(archive_path):
-    """Function to distribute an archive to your web servers"""
-    if not exists(archive_path):
+    """
+    Distribution to my servers
+    """
+    if archive_path is None or not os.path.exists(archive_path):
         return False
     try:
-
-
-        file_name = archive_path.split("/")[-1]
-        name = file_name.split(".")[0]
-        path_name = "/data/web_static/releases/" + name
+        file = archive_path.split("/")[-1]
+        file_name = file.split(".")[0]
+        path = "/data/web_static/releases/"
+        # upload the archive to the /tmp/ directory of the web server
         put(archive_path, "/tmp/")
-        run("mkdir -p {}/".format(path_name))
-        run('tar -xzf /tmp/{} -C {}/'.format(file_name, path_name))
-        run("rm /tmp/{}".format(file_name))
-        run("mv {}/web_static/* {}".format(path_name, path_name))
-        run("rm -rf {}/web_static".format(path_name))
-        run('rm -rf /data/web_static/current')
-        run('ln -s {}/ /data/web_static/current'.format(path_name))
-                # Create 'hbnb_static' directory if it doesn't exist
-        if not isdir("/var/www/html/hbnb_static"):
-            run("sudo mkdir -p /var/www/html/hbnb_static")
-
-        # Sync 'hbnb_static' with 'current'
-        run("sudo cp -r /data/web_static/current/* /var/www/html/hbnb_static/")
-
-        print("New version deployed!")
+        # create a folder with the same name as the archive
+        # without the extension
+        run("mkdir -p {}{}/".format(path, file_name))
+        # uncompress the archive to the folder
+        run("tar -xzf /tmp/{} -C {}{}/".format(
+            file, path, file_name))
+        # delete the archive from the web server
+        run("rm /tmp/{}".format(file))
+        run("mv {0}{1}/web_static/* {0}{1}/".format(path, file_name))
+        # delete the symbolic link /data/web_static/current from the web server
+        run("rm -rf {}{}/web_static".format(path, file_name))
+        run("rm -rf /data/web_static/current")
+        # create new symbolic link /data/web_static/current on web server
+        # linked to the new version of your code
+        run("ln -s {}{}/ /data/web_static/current".
+            format(path, file_name))
         return True
-    except Exception:
+    except BaseException:
         return False
