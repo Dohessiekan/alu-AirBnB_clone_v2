@@ -7,7 +7,7 @@ from models.state import State
 from flask import Flask
 from flask import render_template
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 
 @app.route('/states', strict_slashes=False)
@@ -41,5 +41,5 @@ def teardown(self):
     storage.close()
 
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(host='0.0.0.0')
